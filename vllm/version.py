@@ -1,9 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 try:
-    __version__ = "0.7.2.0"
-    __version_tuple__ = (0, 7, 2, 0)
-
+    from ._version import __version__, __version_tuple__
 except Exception as e:
     import warnings
 
