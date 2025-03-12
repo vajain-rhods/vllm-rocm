@@ -213,7 +213,7 @@ spec:
       - name: netrc
         workspace: netrc
     - name: build-ppc64le-image
-      timeout: 4h
+      timeout: 6h
       params:
       - name: PLATFORM
         value: linux-large/ppc64le
@@ -259,7 +259,7 @@ spec:
         values:
         - "true"
     - name: build-s390x-image
-      timeout: 4h
+      timeout: 6h
       params:
       - name: PLATFORM
         value: linux-large/s390x
