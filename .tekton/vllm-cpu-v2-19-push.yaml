@@ -7,8 +7,10 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "rhoai-2.19"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push"
+      && target_branch == "rhoai-2.19"
+      && ( !".tekton/**".pathChanged() || ".tekton/vllm-cpu-v2-19-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: external-rhoai-v2-19
@@ -25,11 +27,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/modh/vllm:{{target_branch}}-cuda
-  - name: build-platforms
-    value:
-    - linux-large/s390x
-    - linux-large/ppc64le
+    value: quay.io/modh/vllm:{{target_branch}}-cpu
   - name: s390x-dockerfile
     value: Dockerfile.s390x.ubi
   - name: ppc64le-dockerfile
