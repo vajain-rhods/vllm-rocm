@@ -1,0 +1,173 @@
+# syntax=docker/dockerfile:1
+# check=skip=InvalidDefaultArgInFrom # defaults are specified in bakefiles
+# vim: ft=dockerfile
+
+ARG BASE_UBI_IMAGE_TAG
+ARG PYTHON_VERSION
+
+## Base Layer ##################################################################
+FROM registry.access.redhat.com/ubi9/ubi-minimal:${BASE_UBI_IMAGE_TAG} AS base
+ARG PYTHON_VERSION
+ENV PYTHON_VERSION=${PYTHON_VERSION}
+RUN microdnf -y update && microdnf install -y \
+    python${PYTHON_VERSION}-pip python${PYTHON_VERSION}-wheel \
+    && microdnf clean all
+
+WORKDIR /workspace
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+# Some utils for dev purposes - tar required for kubectl cp
+RUN microdnf install -y \
+        which procps findutils tar \
+    && microdnf clean all
+
+
+## Python Installer ############################################################
+FROM base AS python-install
+ARG PYTHON_VERSION
+
+ENV VIRTUAL_ENV=/opt/vllm
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV PYTHON_VERSION=${PYTHON_VERSION}
+RUN microdnf install -y \
+    python${PYTHON_VERSION}-devel  && \
+    python${PYTHON_VERSION} -m venv $VIRTUAL_ENV && \
+    pip install --no-cache -U pip wheel uv && \
+    microdnf clean all
+
+
+## CUDA Base ###################################################################
+FROM python-install AS cuda-base
+
+RUN curl -Lo /etc/yum.repos.d/cuda-rhel9.repo \
+        https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo
+
+ENV CUDA_HOME="/usr/local/cuda" \
+    PATH="${CUDA_HOME}/bin:${PATH}"
+ENV LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${CUDA_HOME}/lib64/stubs/:${CUDA_HOME}/extras/CUPTI/lib64:${LD_LIBRARY_PATH}"
+RUN microdnf install -y \
+        cuda-nvcc-12-4 cuda-nvtx-12-4 cuda-libraries-devel-12-4 && \
+    microdnf clean all && \
+    ln -s ${CUDA_HOME}/lib64/stubs/libcuda.so /usr/lib64/
+
+
+## Python cuda base #################################################################
+FROM cuda-base AS python-cuda-base
+
+ENV VIRTUAL_ENV=/opt/vllm
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# install cuda and common dependencies
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=requirements-common.txt,target=requirements-common.txt \
+    --mount=type=bind,source=requirements-cuda.txt,target=requirements-cuda.txt \
+    uv pip install \
+        -r requirements-cuda.txt
+
+
+#################### libsodium Build IMAGE ####################
+FROM base AS libsodium-builder
+
+RUN microdnf install -y gcc gzip \
+    && microdnf clean all
+
+WORKDIR /usr/src/libsodium
+
+ARG LIBSODIUM_VERSION
+RUN curl -LO https://github.com/jedisct1/libsodium/releases/download/${LIBSODIUM_VERSION}-RELEASE/libsodium-${LIBSODIUM_VERSION}.tar.gz \
+    && tar -xzvf libsodium*.tar.gz \
+    && rm -f libsodium*.tar.gz \
+    && mv libsodium*/* ./
+
+RUN CFLAGS="-O3 -Wall -Werror=format-security -Wno-unused-function -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -fstack-clash-protection -fcf-protection"\
+    ./configure --prefix="/usr/" && make -j $MAX_JOBS && make check
+
+## Release #####################################################################
+FROM python-install AS vllm-openai
+ARG PYTHON_VERSION
+
+WORKDIR /workspace
+
+ENV VIRTUAL_ENV=/opt/vllm
+ENV PATH=$VIRTUAL_ENV/bin:$PATH
+
+# force using the python venv's cuda runtime libraries
+ENV LD_LIBRARY_PATH="${VIRTUAL_ENV}/lib/python${PYTHON_VERSION}/site-packages/nvidia/cuda_nvrtc/lib:${LD_LIBRARY_PATH}"
+ENV LD_LIBRARY_PATH="${VIRTUAL_ENV}/lib/python${PYTHON_VERSION}/site-packages/nvidia/cuda_runtime/lib:${LD_LIBRARY_PATH}"
+ENV LD_LIBRARY_PATH="${VIRTUAL_ENV}/lib/python${PYTHON_VERSION}/site-packages/nvidia/nvtx/lib:${LD_LIBRARY_PATH}"
+
+# Triton needs a CC compiler
+RUN microdnf install -y gcc && \
+    microdnf clean all
+
+
+# Install libsodium for Tensorizer encryption
+RUN --mount=type=bind,from=libsodium-builder,src=/usr/src/libsodium,target=/usr/src/libsodium \
+    make -C /usr/src/libsodium install
+
+COPY LICENSE /licenses/vllm.md
+COPY examples/*.jinja /app/data/template/
+
+# install vllm by running the payload script and then install flashinfer
+ARG FLASHINFER_VERSION
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,src=payload,target=/workspace/payload \
+    ./payload/run.sh && \
+        uv pip install "${FLASHINFER_VERSION}"
+
+
+ENV HF_HUB_OFFLINE=1 \
+    HOME=/home/vllm \
+    # Allow requested max length to exceed what is extracted from the
+    # config.json
+    # see: https://github.com/vllm-project/vllm/pull/7080
+    VLLM_ALLOW_LONG_MAX_MODEL_LEN=1 \
+    VLLM_USAGE_SOURCE=production-docker-image \
+    VLLM_WORKER_MULTIPROC_METHOD=fork \
+    VLLM_NO_USAGE_STATS=1 \
+    OUTLINES_CACHE_DIR=/tmp/outlines \
+    NUMBA_CACHE_DIR=/tmp/numba \
+    TRITON_CACHE_DIR=/tmp/triton \
+    # Setup NCCL monitoring with torch
+    # For tensor-parallel workloads, this monitors for NCCL deadlocks when
+    # one rank dies, and tears down the NCCL process groups so that the driver
+    # can cleanly exit.
+    TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC=15 \
+    TORCH_NCCL_DUMP_ON_TIMEOUT=0
+
+# setup non-root user for OpenShift
+RUN umask 002 && \
+    useradd --uid 2000 --gid 0 vllm && \
+    mkdir -p /home/vllm && \
+    chmod g+rwx /home/vllm
+
+USER 2000
+WORKDIR /home/vllm
+
+ENTRYPOINT ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+
+
+## TGIS Adapter layer #####################################################################
+FROM vllm-openai AS vllm-grpc-adapter
+
+USER root
+
+ARG VLLM_TGIS_ADAPTER_VERSION
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,src=payload,target=/workspace/payload \
+    cd /workspace && \
+    env HOME=/root VLLM_TGIS_ADAPTER_VERSION=${VLLM_TGIS_ADAPTER_VERSION} \
+        ./payload/run.sh
+
+ENV GRPC_PORT=8033 \
+    PORT=8000 \
+    # As an optimization, vLLM disables logprobs when using spec decoding by
+    # default, but this would be unexpected to users of a hosted model that
+    # happens to have spec decoding
+    # see: https://github.com/vllm-project/vllm/pull/6485
+    DISABLE_LOGPROBS_DURING_SPEC_DECODING=false
+
+USER 2000
+ENTRYPOINT ["python3", "-m", "vllm_tgis_adapter", "--uvicorn-log-level=warning"]
