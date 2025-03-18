@@ -1,6 +1,7 @@
 # Base UBI image for s390x architecture
 ARG BASE_UBI_IMAGE_TAG=9.5-1741850109
 ARG PYTHON_VERSION=3.12
+ARG VLLM_TGIS_ADAPTER_VERSION="0.6.3"
 FROM registry.access.redhat.com/ubi9/ubi-minimal:${BASE_UBI_IMAGE_TAG} AS base
 
 # Install basic dependencies
@@ -64,9 +65,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python-install AS numa-build
 # Install numactl (needed for numa.h dependency)
 WORKDIR /tmp
-RUN curl -LO https://github.com/numactl/numactl/archive/refs/tags/v2.0.16.tar.gz && \
-    tar -xvzf v2.0.16.tar.gz && \
-    cd numactl-2.0.16 && \
+RUN curl -LO https://github.com/numactl/numactl/archive/refs/tags/v2.0.18.tar.gz && \
+    tar -xvzf v2.0.18.tar.gz && \
+    cd numactl-2.0.18 && \
     ./autogen.sh && \
     ./configure && \
     make
@@ -94,10 +95,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     cd vision && \
     git checkout $TORCH_VISION_VERSION && \
     uv pip install -v torch==${TORCH_VERSION} --extra-index-url https://download.pytorch.org/whl/nightly/cpu && \
-    python setup.py bdist_wheel
+    python setup.py bdist_wheel && \
+    uv pip install dist/*.whl
 
 # Final build stage
-FROM python-install AS vllm-cpu
+FROM python-install AS vllm-openai
 ARG PYTHON_VERSION
 
 # Set correct library path for torch and numactl
@@ -108,7 +110,7 @@ ENV UV_LINK_MODE=copy
 COPY . /workspace/vllm
 WORKDIR /workspace/vllm
 
-RUN --mount=type=bind,from=numa-build,src=/tmp/numactl-2.0.16,target=/numactl \
+RUN --mount=type=bind,from=numa-build,src=/tmp/numactl-2.0.18,target=/numactl \
     make -C /numactl install
 
 # Install dependencies, including PyTorch and Apache Arrow
@@ -116,25 +118,20 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,from=rust,source=/root/.cargo,target=/root/.cargo,rw \
     --mount=type=bind,from=rust,source=/root/.rustup,target=/root/.rustup,rw \
     --mount=type=bind,from=pyarrow,source=/tmp/arrow/python/dist,target=/tmp/arrow-wheels \
-    --mount=type=bind,from=torch-vision,source=/tmp/vision/dist,target=/tmp/vision-wheels/ \
-    CARGO_HOME=/root/.cargo \
-    RUSTUP_HOME=/root/.rustup \
-    PATH="/root/.cargo/bin:/root/.rustup/bin:$PATH" \
+    export PATH="/root/.cargo/bin:/root/.rustup/bin:$PATH" \
+           ARROW_WHL_FILE=$(ls /tmp/arrow-wheels/pyarrow-*.whl | head -n 1) && \
      sed -i '/^torch/d' requirements-build.txt && \
      sed -i '/^numba/d' requirements-common.txt && \
-     ARROW_WHL_FILE=$(ls /tmp/arrow-wheels/pyarrow-*.whl | head -n 1) && \
-     VISION_WHL_FILE=$(ls /tmp/vision-wheels/*.whl | head -n 1) && \
-    uv pip install -v \    
-        $ARROW_WHL_FILE  \
-        $VISION_WHL_FILE \
+    uv pip install -v \
+        $ARROW_WHL_FILE \
         --extra-index-url https://download.pytorch.org/whl/nightly/cpu \
         --index-strategy unsafe-best-match \
         -r requirements-build.txt \
-        -r requirements-cpu.txt 
+        -r requirements-cpu.txt
 
 # Build and install vllm
 RUN --mount=type=cache,target=/root/.cache/uv \
-    VLLM_TARGET_DEVICE=cpu python setup.py bdist_wheel && \
+    VLLM_TARGET_DEVICE=cpu uv build --wheel --no-build-isolation && \
     uv pip install "$(echo dist/*.whl)[tensorizer]"
 
 ENV HF_HUB_OFFLINE=1 \
@@ -163,20 +160,33 @@ WORKDIR /home/vllm
 # Set the default entrypoint
 ENTRYPOINT ["python", "-m", "vllm.entrypoints.openai.api_server"]
 
-
-FROM vllm-cpu as vllm-grpc-adapter
+FROM vllm-openai AS vllm-tgis-adapter-cache-builder
+ARG VLLM_TGIS_ADAPTER_VERSION
 
 USER root
+
+RUN microdnf install -y perl-core
 
 ENV GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,from=rust,source=/root/.cargo,target=/root/.cargo,rw \
     --mount=type=bind,from=rust,source=/root/.rustup,target=/root/.rustup,rw \
-    CARGO_HOME=/root/.cargo \
-    RUSTUP_HOME=/root/.rustup \
-    PATH="/root/.cargo/bin:/root/.rustup/bin:$PATH" \
-    HOME=/root uv pip install "$(echo /workspace/vllm/dist/*.whl)[tensorizer]" vllm-tgis-adapter==0.6.3
+    export PATH="$PATH:/root/.cargo/bin:/root/.rustup/bin" && \
+    HOME=/root uv pip install "$(echo /workspace/vllm/dist/*.whl)[tensorizer]" vllm-tgis-adapter==${VLLM_TGIS_ADAPTER_VERSION} && \   
+    cd /tmp && touch control
+
+FROM vllm-openai as vllm-grpc-adapter
+ARG VLLM_TGIS_ADAPTER_VERSION
+
+USER root
+
+ENV GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
+
+COPY --from=vllm-tgis-adapter-cache-builder /tmp/control /dev/null
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    HOME=/root uv pip install "$(echo /workspace/vllm/dist/*.whl)[tensorizer]" vllm-tgis-adapter==${VLLM_TGIS_ADAPTER_VERSION}
 
 ENV GRPC_PORT=8033 \
     PORT=8000 \
