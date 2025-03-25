@@ -478,7 +478,7 @@ def get_gaudi_sw_version():
 
 
 def get_vllm_version() -> str:
-    version = "0.7.2.0"
+    version = "0.7.2.1"
 
     sep = "+" if "+" not in version else "."  # dev versions might contain +
 
