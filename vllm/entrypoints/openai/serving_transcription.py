@@ -296,6 +296,7 @@ class OpenAIServingTranscription(OpenAIServing):
         # Non-streaming response.
         try:
             assert result_generator is not None
+
             async for op in result_generator:
                 result = op
             return TranscriptionResponse(text=result.outputs[0].text)
