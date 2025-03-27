@@ -199,7 +199,7 @@ ENV HF_HUB_OFFLINE=1 \
 RUN umask 002 && \
     useradd --uid 2000 --gid 0 vllm && \
     mkdir -p /home/vllm && \
-    chown vllm:vllm /home/vllm && \
+    chown -R vllm /home/vllm && \
     chmod g+rwx /home/vllm
 
 COPY LICENSE /licenses/vllm.md
