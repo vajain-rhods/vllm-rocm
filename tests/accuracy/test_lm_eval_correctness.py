@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import itertools
 import os
 from pathlib import Path
@@ -75,8 +76,10 @@ def test_lm_eval_correctness(num_gpus_available, test_data_file):
     eval_config = yaml.safe_load(
         Path(TEST_DATA_PATH).read_text(encoding="utf-8"))
     eval_config_tasks = {
-        t['name']: {m['name']: m['value']
-                    for m in t['metrics']}
+        t['name']: {
+            m['name']: m['value']
+            for m in t['metrics']
+        }
         for t in eval_config["tasks"]
     }
     # identify unique metrics we wish to report on.
