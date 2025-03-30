@@ -2,22 +2,21 @@
 # Datastructures defining an input batch
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, cast
+from typing import Optional, cast
 
 import numpy as np
 import torch
 
 from vllm.lora.request import LoRARequest
-from vllm.multimodal import MultiModalKwargs
+from vllm.multimodal.inputs import MultiModalKwargs, PlaceholderRange
 from vllm.sampling_params import SamplingParams, SamplingType
+from vllm.utils import swap_dict_values
+from vllm.v1.outputs import LogprobsTensors
 from vllm.v1.sample.metadata import SamplingMetadata
 from vllm.v1.utils import copy_slice
 from vllm.v1.worker.block_table import BlockTable
 
 _SAMPLING_EPS = 1e-5
-
-if TYPE_CHECKING:
-    from vllm.multimodal.inputs import PlaceholderRange
 
 
 @dataclass
@@ -27,7 +26,7 @@ class CachedRequestState:
     prompt_token_ids: list[int]
     prompt: Optional[str]
     mm_inputs: list[MultiModalKwargs]
-    mm_positions: list["PlaceholderRange"]
+    mm_positions: list[PlaceholderRange]
     sampling_params: SamplingParams
     generator: Optional[torch.Generator]
 
@@ -196,6 +195,9 @@ class InputBatch:
         # that are currently in the prefill phase.
         self.num_prompt_logprobs: dict[str, int] = {}
 
+        # To accumulate prompt logprobs tensor chunks across prefill steps.
+        self.in_progress_prompt_logprobs_cpu: dict[str, LogprobsTensors] = {}
+
         self.logit_bias: list[Optional[dict[int,
                                             float]]] = [None] * max_num_reqs
         self.has_allowed_token_ids: set[str] = set()
@@ -203,6 +205,9 @@ class InputBatch:
         # the value is False. Since we use masked_fill_ to set -inf.
         self.allowed_token_ids_mask: Optional[torch.Tensor] = None
         self.allowed_token_ids_mask_cpu_tensor: Optional[torch.Tensor] = None
+
+        # req_index -> bad_words_token_ids
+        self.bad_words_token_ids: dict[int, list[list[int]]] = {}
 
         self.req_output_token_ids: list[Optional[list[int]]] = []
 
@@ -320,6 +325,10 @@ class InputBatch:
             self.allowed_token_ids_mask_cpu_tensor[req_index][
                 sampling_params.allowed_token_ids] = False
 
+        if sampling_params.bad_words_token_ids:
+            self.bad_words_token_ids[
+                req_index] = sampling_params.bad_words_token_ids
+
         # Add request lora ID
         if request.lora_request:
             lora_id = request.lora_request.lora_int_id
@@ -354,6 +363,7 @@ class InputBatch:
         self.generators.pop(req_index, None)
         self.num_logprobs.pop(req_id, None)
         self.num_prompt_logprobs.pop(req_id, None)
+        self.in_progress_prompt_logprobs_cpu.pop(req_id, None)
 
         # LoRA
         lora_id = self.request_lora_mapping[req_index]
@@ -369,6 +379,7 @@ class InputBatch:
         if self.allowed_token_ids_mask_cpu_tensor is not None:
             # False means we don't fill with -inf.
             self.allowed_token_ids_mask_cpu_tensor[req_index].fill_(False)
+        self.bad_words_token_ids.pop(req_index, None)
         return req_index
 
     def swap_states(self, i1: int, i2: int) -> None:
@@ -413,27 +424,9 @@ class InputBatch:
         self.token_ids_cpu[i1, ...] = self.token_ids_cpu[i2, ...]
         self.token_ids_cpu[i2, ...] = tmp
 
-        g1 = self.generators.get(i1)
-        g2 = self.generators.get(i2)
-        if g1 is not None:
-            self.generators[i2] = g1
-        else:
-            self.generators.pop(i2, None)
-        if g2 is not None:
-            self.generators[i1] = g2
-        else:
-            self.generators.pop(i1, None)
-
-        t1 = self.min_tokens.get(i1)
-        t2 = self.min_tokens.get(i2)
-        if t1 is not None:
-            self.min_tokens[i2] = t1
-        else:
-            self.min_tokens.pop(i2, None)
-        if t2 is not None:
-            self.min_tokens[i1] = t2
-        else:
-            self.min_tokens.pop(i1, None)
+        swap_dict_values(self.generators, i1, i2)
+        swap_dict_values(self.min_tokens, i1, i2)
+        swap_dict_values(self.bad_words_token_ids, i1, i2)
 
         self.request_lora_mapping[i1], self.request_lora_mapping[i2] =\
             self.request_lora_mapping[i2], self.request_lora_mapping[i1]
@@ -518,6 +511,10 @@ class InputBatch:
                     empty_index] = self.allowed_token_ids_mask_cpu_tensor[
                         last_req_index]
 
+            bad_words_token_ids = self.bad_words_token_ids.pop(
+                last_req_index, None)
+            if bad_words_token_ids is not None:
+                self.bad_words_token_ids[empty_index] = bad_words_token_ids
             # Decrement last_req_index since it is now empty.
             last_req_index -= 1
 
@@ -585,6 +582,7 @@ class InputBatch:
             no_penalties=self.no_penalties,
             logit_bias=self.logit_bias[:num_reqs],
             allowed_token_ids_mask=allowed_token_ids_mask,
+            bad_words_token_ids=self.bad_words_token_ids,
         )
 
     def _make_prompt_token_ids_tensor(self) -> torch.Tensor:
