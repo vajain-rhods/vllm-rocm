@@ -8,7 +8,7 @@ There are no pre-built wheels for this device, so you must either use the pre-bu
 
 ## Requirements
 
-- GPU: MI200s (gfx90a), MI300 (gfx942), Radeon RX 7900 series (gfx1100)
+- GPU: MI200s (gfx90a), MI300 (gfx942), Radeon RX 7900 series (gfx1100/1101), Radeon RX 9000 series (gfx1200/1201)
 - ROCm 6.3
 
 ## Set up using Python
@@ -84,7 +84,7 @@ Currently, there are no pre-built ROCm wheels.
     # Install dependencies
     $ pip install --upgrade numba scipy huggingface-hub[cli,hf_transfer] setuptools_scm
     $ pip install "numpy<2"
-    $ pip install -r requirements-rocm.txt
+    $ pip install -r requirements/rocm.txt
 
     # Build vLLM for MI210/MI250/MI300.
     $ export PYTORCH_ROCM_ARCH="gfx90a;gfx942"
