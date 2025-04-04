@@ -3,19 +3,11 @@ variable "REPOSITORY" {
 }
 
 # GITHUB_* variables are only available in github actions
-variable "GITHUB_SHA" {
-  default = "$GITHUB_SHA"
-}
-variable "GITHUB_REPO" {
-  default = "$GITHUB_REPO"
-}
-variable "GITHUB_RUN_ID" {
-  default = "$GITHUB_RUN_ID"
-}
+variable "GITHUB_SHA" {}
+variable "GITHUB_REPOSITORY" {}
+variable "GITHUB_RUN_ID" {}
 
-variable "VLLM_VERSION" { # set by github actions or manually?
-  default = "$VLLM_VERSION"
-}
+variable "VLLM_VERSION" {} # set by github actions or manually?
 
 target "docker-metadata-action" {} // populated by gha docker/metadata-action
 
@@ -33,7 +25,7 @@ target "_common" {
     "linux/amd64",
   ]
   labels = {
-    "org.opencontainers.image.source" = "https://github.com/${GITHUB_REPO}"
+    "org.opencontainers.image.source" = "https://github.com/${GITHUB_REPOSITORY}"
     "vcs-ref" = "${GITHUB_SHA}"
     "vcs-type" = "git"
   }
