@@ -48,7 +48,7 @@ target "cuda" {
     LIBSODIUM_VERSION = "1.0.20"
     VLLM_TGIS_ADAPTER_VERSION = "0.6.3"
 
-    FLASHINFER_VERSION = "https://github.com/flashinfer-ai/flashinfer/releases/download/v0.2.1.post1/flashinfer_python-0.2.1.post1+cu124torch2.5-cp38-abi3-linux_x86_64.whl"
+    FLASHINFER_VERSION = "https://github.com/flashinfer-ai/flashinfer/releases/download/v0.2.1.post2/flashinfer_python-0.2.1.post2+cu124torch2.6-cp38-abi3-linux_x86_64.whl"
   }
 
   tags = [
