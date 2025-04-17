@@ -9,14 +9,14 @@ metadata:
     build.appstudio.openshift.io/build-nudge-files: "config/base/params.env"
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push"
-      && target_branch == "rhoai-2.19"
-      && ( !".tekton/**".pathChanged() || ".tekton/vllm-cuda-v2-19-push.yaml".pathChanged() )
+      && target_branch == "rhoai-2.20"
+      && ( !".tekton/**".pathChanged() || ".tekton/vllm-cuda-v2-20-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: external-rhoai-v2-19
-    appstudio.openshift.io/component: vllm-cuda-v2-19
+    appstudio.openshift.io/application: external-rhoai-v2-20
+    appstudio.openshift.io/component: vllm-cuda-v2-20
     pipelines.appstudio.openshift.io/type: build
-  name: vllm-cuda-v2-19-on-push
+  name: vllm-cuda-v2-20-on-push
   namespace: rhoai-tenant
 spec:
   params:
@@ -30,10 +30,6 @@ spec:
     value: Dockerfile.ubi
   - name: path-context
     value: .
-  - name: additional-build-secret
-    value: rhel-ai-private-index-auth
-  - name: build-args-file
-    value: argfile.konflux
   taskRunSpecs:
     - pipelineTaskName: ecosystem-cert-preflight-checks
       computeResources:
@@ -298,8 +294,6 @@ spec:
           - $(params.build-platforms)
       name: build-images
       params:
-      - name: ADDITIONAL_SECRET
-        value: $(params.additional-build-secret)
       - name: IMAGE
         value: $(params.output-image)
       - name: DOCKERFILE
@@ -691,3 +685,4 @@ spec:
     secret:
       secretName: '{{ git_auth_secret }}'
 status: {}
+#restart
