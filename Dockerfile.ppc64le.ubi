@@ -1,4 +1,5 @@
 ARG BASE_UBI_IMAGE_TAG=9.5-1742914212
+ARG VLLM_TGIS_ADAPTER_VERSION=0.7.0
 
 ###############################################################
 # base stage with basic dependencies
@@ -52,9 +53,9 @@ FROM base-builder AS torch-builder
 # build cache without torch dependent packages
 # sentencepiece has linker issues otherwise
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,src=requirements-common.txt,dst=/requirements-common.txt,ro \
+    --mount=type=bind,src=requirements/common.txt,dst=/requirements/common.txt,ro \
     source /opt/rh/gcc-toolset-13/enable && \
-    sed -e 's/.*opencv.*//g; s/.*outlines.*//g; s/.*tensors.*//g' requirements-common.txt | uv pip install -r /dev/stdin && \
+    sed -e 's/.*opencv.*//g; s/.*outlines.*//g; s/.*tensors.*//g' requirements/common.txt | uv pip install -r /dev/stdin && \
     uv pip list
 
 ARG MAX_JOBS
@@ -99,10 +100,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # build cache with torch dependent packages
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,src=requirements-common.txt,dst=/requirements-common.txt,ro \
+    --mount=type=bind,src=requirements/common.txt,dst=/requirements/common.txt,ro \
     source /opt/rh/gcc-toolset-13/enable && \
-    grep "outlines" requirements-common.txt | uv pip install -r /dev/stdin && \
-    grep "tensors" requirements-common.txt | uv pip install -r /dev/stdin && \
+    grep "outlines" requirements/common.txt | uv pip install -r /dev/stdin && \
+    grep "tensors" requirements/common.txt | uv pip install -r /dev/stdin && \
     uv pip list
 
 
@@ -130,7 +131,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         .. && \
     make install -j ${MAX_JOBS:-$(nproc)} && \
     cd ../../python/ && \
-    uv pip install -v -r requirements-wheel-build.txt && \
+    uv pip install -v -r requirements/wheel-build.txt && \
     PYARROW_PARALLEL=${PYARROW_PARALLEL:-$(nproc)} \
     python setup.py build_ext \
     --build-type=release --bundle-arrow-cpp \
@@ -155,11 +156,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # build opencv dependent packages
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,src=requirements-common.txt,dst=/requirements-common.txt,ro \
+    --mount=type=bind,src=requirements/common.txt,dst=/requirements/common.txt,ro \
     source /opt/rh/gcc-toolset-13/enable && \
     uv pip install /opencvwheels/*.whl && \
     uv pip list | grep opencv && \
-    grep "opencv" requirements-common.txt | uv pip install -r /dev/stdin --no-build-isolation && \
+    grep "opencv" requirements/common.txt | uv pip install -r /dev/stdin --no-build-isolation && \
     uv pip list
 
 
@@ -175,7 +176,7 @@ COPY --from=torch-builder /tmp/control /dev/null
 COPY --from=arrow-builder /tmp/control /dev/null
 COPY --from=cv-builder /tmp/control /dev/null
 
-ARG VLLM_TGIS_ADAPTER_VERSION=0.6.3
+ARG VLLM_TGIS_ADAPTER_VERSION
 ARG VLLM_TARGET_DEVICE=cpu
 ARG GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
 
@@ -188,9 +189,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,src=.,dst=/src/,rw \
     source /opt/rh/gcc-toolset-13/enable && \
     uv pip install /opencvwheels/*.whl /arrowwheels/*.whl /torchwheels/*.whl && \
-    sed -i -e 's/.*torch.*//g' /src/pyproject.toml /src/requirements-*.txt && \
+    sed -i -e 's/.*torch.*//g' /src/pyproject.toml /src/requirements/*.txt && \
     uv pip install pandas && \
-    uv pip install -r /src/requirements-common.txt -r /src/requirements-cpu.txt -r /src/requirements-build.txt --no-build-isolation && \
+    uv pip install -r /src/requirements/common.txt -r /src/requirements/cpu.txt -r /src/requirements/build.txt --no-build-isolation && \
     cd /src/ && \
     uv build --wheel --out-dir /vllmwheel/ --no-build-isolation && \
     uv pip install "$(echo /vllmwheel/*.whl)[tensorizer]" vllm-tgis-adapter==${VLLM_TGIS_ADAPTER_VERSION}
@@ -307,7 +308,7 @@ FROM vllm-openai as vllm-grpc-adapter
 
 USER root
 
-ARG VLLM_TGIS_ADAPTER_VERSION=0.6.3
+ARG VLLM_TGIS_ADAPTER_VERSION
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,from=vllmcache-builder,source=/vllmwheel/,target=/vllmwheel/,ro \
     HOME=/root uv pip install "$(echo /vllmwheel/*.whl)[tensorizer]" vllm-tgis-adapter==${VLLM_TGIS_ADAPTER_VERSION}
