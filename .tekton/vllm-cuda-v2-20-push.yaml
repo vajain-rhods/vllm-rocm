@@ -19,6 +19,9 @@ metadata:
   name: vllm-cuda-v2-20-on-push
   namespace: rhoai-tenant
 spec:
+  timeouts:
+    pipeline: 8h
+    tasks: 4h
   params:
   - name: git-url
     value: '{{source_url}}'
@@ -30,6 +33,10 @@ spec:
     value: Dockerfile.ubi
   - name: path-context
     value: .
+  - name: build-args
+    value: 
+      - max_jobs=6
+      - nvcc_threads=2
   taskRunSpecs:
     - pipelineTaskName: ecosystem-cert-preflight-checks
       computeResources:
@@ -138,7 +145,7 @@ spec:
       description: Add built image into an OCI image index
       name: build-image-index
       type: string
-    - default: [max_jobs=48]
+    - default: []
       description: Array of --build-arg values ("arg=value" strings) for buildah
       name: build-args
       type: array
@@ -293,6 +300,7 @@ spec:
           value:
           - $(params.build-platforms)
       name: build-images
+      timeout: 4h
       params:
       - name: IMAGE
         value: $(params.output-image)
@@ -355,7 +363,7 @@ spec:
         - name: name
           value: build-image-index
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-build-image-index:0.1@sha256:09344e6bda708f48ef759bbe84bce99515549f4cfdcbe89e417f695c19463260
+          value: quay.io/konflux-ci/tekton-catalog/task-build-image-index:0.1@sha256:70f2fe8ab9909c2bc8bb853ed5b880969f0de5022658f3af86f7dea15f95ff73
         - name: kind
           value: task
         resolver: bundles
