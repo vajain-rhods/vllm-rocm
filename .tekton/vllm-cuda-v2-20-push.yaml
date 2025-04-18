@@ -79,9 +79,9 @@ spec:
       - name: message
         value: "$(tasks.rhoai-init.results.slack-message-failure-text)"
       - name: secret-name
-        value: rhoai-slack-webhook-secret
+        value: rhoai-konflux-secret
       - name: key-name
-        value: rhoai-slack-webhook-key
+        value: slack-webhook 
       taskRef:
         params:
         - name: name
