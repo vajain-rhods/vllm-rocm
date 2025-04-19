@@ -31,9 +31,8 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/modh/vllm:on-pr-cuda-{{revision}}
-  - name: dockerfiles
-    value: 
-    - Dockerfile.ubi
+  - name: dockerfile
+    value: Dockerfile.ubi
   - name: path-context
     value: .
   - name: hermetic

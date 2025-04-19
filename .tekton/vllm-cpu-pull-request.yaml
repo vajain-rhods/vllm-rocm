@@ -31,10 +31,8 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/modh/vllm:on-pr-cpu-{{revision}}
-  - name: dockerfiles
-    value: 
-    - Dockerfile.s390x.ubi
-    - Dockerfile.ppc64le.ubi
+  - name: dockerfile
+    value: Dockerfile.s390x.ubi
   - name: path-context
     value: .
   - name: hermetic
@@ -54,7 +52,6 @@ spec:
   - name: build-platforms
     value: 
       - linux-large/s390x
-      - linux-large/ppc64le
   taskRunSpecs:
     - pipelineTaskName: ecosystem-cert-preflight-checks
       computeResources:
