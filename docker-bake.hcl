@@ -2,6 +2,10 @@ variable "REPOSITORY" {
   default = "quay.io/vllm/automation-vllm"
 }
 
+variable "RELEASE_IMAGE" {
+  default = false
+}
+
 # GITHUB_* variables are set as env vars in github actions
 variable "GITHUB_SHA" {}
 variable "GITHUB_REPOSITORY" {}
@@ -67,6 +71,7 @@ target "cuda" {
     "${REPOSITORY}:${replace(VLLM_VERSION, "+", "_")}", # vllm_version might contain local version specifiers (+) which are not valid tags
     "${REPOSITORY}:cuda-${GITHUB_SHA}",
     "${REPOSITORY}:cuda-${GITHUB_RUN_ID}",
+    RELEASE_IMAGE ? "quay.io/vllm/vllm-cuda:${replace(VLLM_VERSION, "+", "_")}" : ""
   ]
 }
 
@@ -85,5 +90,6 @@ target "rocm" {
     "${REPOSITORY}:${replace(VLLM_VERSION, "+", "_")}", # vllm_version might contain local version specifiers (+) which are not valid tags
     "${REPOSITORY}:rocm-${GITHUB_SHA}",
     "${REPOSITORY}:cuda-${GITHUB_RUN_ID}",
+    RELEASE_IMAGE ? "quay.io/vllm/vllm-rocm:${replace(VLLM_VERSION, "+", "_")}" : ""
   ]
 }
