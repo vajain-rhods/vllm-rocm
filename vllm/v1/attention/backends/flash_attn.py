@@ -318,11 +318,6 @@ class FlashAttentionMetadataBuilder:
         # populated on first build() call.
         self.aot_sliding_window: Optional[tuple[int, int]] = None
 
-        self.aot_schedule = (get_flash_attn_version() == 3)
-        # Sliding window size to be used with the AOT scheduler will be
-        # populated on first build() call.
-        self.aot_sliding_window: Optional[tuple[int, int]] = None
-
     def reorder_batch(self, input_batch: "InputBatch",
                       scheduler_output: "SchedulerOutput") -> bool:
         return False
