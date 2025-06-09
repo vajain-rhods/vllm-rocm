@@ -89,7 +89,7 @@ target "rocm" {
   tags = [
     "${REPOSITORY}:${replace(VLLM_VERSION, "+", "_")}", # vllm_version might contain local version specifiers (+) which are not valid tags
     "${REPOSITORY}:rocm-${GITHUB_SHA}",
-    "${REPOSITORY}:cuda-${GITHUB_RUN_ID}",
+    "${REPOSITORY}:rocm-${GITHUB_RUN_ID}",
     RELEASE_IMAGE ? "quay.io/vllm/vllm-rocm:${replace(VLLM_VERSION, "+", "_")}" : ""
   ]
 }
