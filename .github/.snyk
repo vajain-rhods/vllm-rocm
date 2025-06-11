@@ -1,5 +1,5 @@
 # Snyk (https://snyk.io) policy file
 exclude:
  global:
-   - examples
-   - tests
+   - examples/
+   - tests/
