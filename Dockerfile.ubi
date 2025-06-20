@@ -110,12 +110,10 @@ RUN --mount=type=bind,from=libsodium-builder,src=/usr/src/libsodium,target=/usr/
 COPY LICENSE /licenses/vllm.md
 COPY examples/*.jinja /app/data/template/
 
-# install vllm by running the payload script and then install flashinfer
-ARG FLASHINFER_VERSION
+# install vllm (and any other dependencies )by running the payload script
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,src=payload,target=/workspace/payload \
-    ./payload/run.sh && \
-        uv pip install "${FLASHINFER_VERSION}"
+    ./payload/run.sh
 
 
 ENV HF_HUB_OFFLINE=1 \
