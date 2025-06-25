@@ -7,116 +7,116 @@ exclude:
    - benchmarks/
 ignore:
   4ae4ee24-b2cd-427a-bcb2-6c720be06bff:
-    - "`vllm/compilation/backends.py`"
-    reason: "hashlib.md5, usedforsecurity=False) is used to index the vllm cache."
+    - "vllm/compilation/backends.py"
+    reason: "hashlib.md5(foo, usedforsecurity=False) is used to index the vllm cache."
   f4263be4-c6d2-48c9-b1e9-9920ddceae9b:
-    - "`vllm/compilation/backends.py`"
-    reason: "hashlib.md5, usedforsecurity=False) is used to index the vllm cache."
+    - "vllm/compilation/backends.py"
+    reason: "hashlib.md5(foo, usedforsecurity=False) is used to index the vllm cache."
   3a983f17-46a5-45ab-9418-388e92b2b52b:
-    - "`vllm/compilation/compiler_interface.py`"
-    reason: "hashlib.md5, usedforsecurity=False) is used cache the compiled model."
+    - "vllm/compilation/compiler_interface.py"
+    reason: "hashlib.md5(foo, usedforsecurity=False) is used cache the compiled model."
   afbe5163-c716-4cc6-816c-9d8d905361f2:
-    - "`vllm/compilation/compiler_interface.py`"
-    reason: "hashlib.md5, usedforsecurity=False) is used cache the compiled model."
+    - "vllm/compilation/compiler_interface.py"
+    reason: "hashlib.md5(foo, usedforsecurity=False) is used cache the compiled model."
   4c7716af-d915-445b-8499-e01bee7ca3eb:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   efdb23e1-33c1-4bd1-ac3e-e3a1d6a1f9a5:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   22b52a3f-946f-4a45-b272-7e09bc1c717f:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   98e2d729-47f6-4972-b7a8-c0f9c57473b4:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   5ceb2901-37e1-49fb-9933-7e12871fd0eb:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   a5701954-c405-4377-9201-7b7610ae2fa1:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   75f047e7-9367-4f34-9d39-2934951e7a9c:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   e58acb01-11f4-48a6-9d42-e5a20fbb2d1a:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   135d4931-3422-4cf2-ba2c-2c19d3c0745:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   0eb87f5c-a2a0-4b62-b285-1c61dc685963:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   ce065f68-2abd-4dc0-9aa1-af308fa6fe98:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   62f50fd2-89b6-4a74-bc15-251a1da2504b:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   ffbd7296-1647-487c-8c9d-237a8aa9f300:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   c1c335e1-e477-4d56-a29e-7638a4310146:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "hashlib.md5, Provide a hash that uniquely identifies all the configs that affect the structure of the computation graph"
   c72bb1e3-2c89-41b8-a95c-0a23ed116d72:
-    - "`vllm/distributed/kv_transfer/kv_connector/v1/shared_storage_connector.py`"
+    - "vllm/distributed/kv_transfer/kv_connector/v1/shared_storage_connector.py"
     reason: "hashlib.md5, Generate a folder name based on the hash of the bytes of the input 
         ids."
   da9230ac-6fb5-4b1e-90ec-cee9ce4cca96:
-    -"`vllm/envs.py`"
+    -"vllm/envs.py"
     reason: "computes hash from environment variables to use in computation graph."
   41ccd140-2279-4f81-8529-789d75324775:
-    - "`vllm/model_executor/model_loader/neuronx_distributed.py`"
+    - "vllm/model_executor/model_loader/neuronx_distributed.py"
     reason: "Hashes a config to use in the compiled model path"
   87b56ede-8c41-4030-8175-4e7abe6e5c8f:
-    - "`vllm/model_executor/model_loader/neuronx_distributed.py`"
+    - "vllm/model_executor/model_loader/neuronx_distributed.py"
     reason: "Hashes a config to use in the compiled model path"
   49542196-2b6f-48ce-83fd-d5951270c1f7:
-    - "`vllm/model_executor/model_loader/neuronx_distributed.py`"
+    - "vllm/model_executor/model_loader/neuronx_distributed.py"
     reason: "Hashes a config to use in the compiled model path"
   fb0f3bcf-756d-4075-8f8b-499585ab13e8:
-    - "`cmake/hipify.py`"
+    - "cmake/hipify.py"
     reason: "Only used for builds that are hermetic, so safe"
   dabada8d-4a4e-4566-87a9-748acc41407a:
-    - "`vllm/entrypoints/openai/api_server.py`"
+    - "vllm/entrypoints/openai/api_server.py"
     reason: "content that’s injected is essentially sanitized after the fact"
   989c1251-3259-43b4-8838-8b99f861b726:
-    - "`vllm/collect_env.py`"
+    - "vllm/collect_env.py"
     reason: "only used for debugging"
   93254463-2330-469a-b7bd-07990b32dbe7:
-    - "`.buildkite/check-wheel-size.py`"
+    - ".buildkite/check-wheel-size.py"
     reason: "Only used for builds that are hermetic, so safe"
   83421bfb-7c68-4c08-8999-6667d88135d8:
-    - "`.buildkite/nightly-benchmarks/scripts/generate-nightly-markdown.py`"
+    - ".buildkite/nightly-benchmarks/scripts/generate-nightly-markdown.py"
     reason: "Only used for builds that are hermetic, so safe"
   2e20cac3-5627-4937-b5ed-ad9a4731450f:
-    - "`.buildkite/nightly-benchmarks/scripts/generate-nightly-markdown.py`"
+    - ".buildkite/nightly-benchmarks/scripts/generate-nightly-markdown.py"
     reason: "Only used for builds that are hermetic, so safe"
   320f4c0e-a740-4f98-8943-efdba82de6e6:
-    - "`tools/check_spdx_header.py`"
+    - "tools/check_spdx_header.py"
     reason: "Only used for builds that are hermetic, so safe"
   b7b58a46-2534-4e1f-878b-dff00168e88e:
-    - "`tools/check_spdx_header.py`"
+    - "tools/check_spdx_header.py"
     reason: "Only used for builds that are hermetic, so safe"
   b9cb42f0-e427-4e34-8bc2-6e4dcdee0e31:
-    - "`tools/check_spdx_header.py`"
+    - "tools/check_spdx_header.py"
     reason: "Only used for builds that are hermetic, so safe"
   84e4ef36-a7aa-43f8-a72f-ff8a87076689:
-    - "`tools/check_spdx_header.py`"
+    - "tools/check_spdx_header.py"
     reason: "Only used for builds that are hermetic, so safe"
   1fb04bd4-9103-4ae5-ac6a-43ed485935d0:
-    - "`tools/check_spdx_header.py`"
+    - "tools/check_spdx_header.py"
     reason: "Only used for debugging"
   c1a02928-98fc-4c45-80cf-6d5b54edb829:
-    - "`tools/profiler/visualize_layerwise_profile.py`"
+    - "tools/profiler/visualize_layerwise_profile.py"
     reason: "Only used for debugging"
   b1014f3f-209a-472a-87d9-f63ea340dd6e:
-    - "`vllm/entrypoints/openai/api_server.py`"
+    - "vllm/entrypoints/openai/api_server.py"
   35c70c9c-a94e-4708-af7a-1d892894c7c5:
-    - "`vllm/utils.py`"
+    - "vllm/utils.py"
     reason: "tooling only"
   c27aa886-c24b-45df-853a-888713849906:
-    - "`vllm/config.py`"
+    - "vllm/config.py"
     reason: "the provided key is a default required by tests. Not used in production"
