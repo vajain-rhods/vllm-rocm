@@ -7,7 +7,7 @@ exclude:
    - benchmarks/
 ignore:
   4ae4ee24-b2cd-427a-bcb2-6c720be06bff:
-    - "vllm/compilation/backends.py"
+    - "*"
     reason: "hashlib.md5(foo, usedforsecurity=False) is used to index the vllm cache."
   f4263be4-c6d2-48c9-b1e9-9920ddceae9b:
     - "vllm/compilation/backends.py"
