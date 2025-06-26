@@ -9,7 +9,7 @@ ignore:
   "4ae4ee24-b2cd-427a-bcb2-6c720be06bff":
     - "vllm/compilation/backends.py, line 425":
         reason: "hashlib.md5(foo, usedforsecurity=False) is used to index the vllm cache."
-  "f4263be4-c6d2-48c9-b1e9-9920ddceae9b":
+  'f4263be4-c6d2-48c9-b1e9-9920ddceae9b':
     - "vllm/compilation/backends.py":
         reason: "hashlib.md5(foo, usedforsecurity=False) is used to index the vllm cache."
   "3a983f17-46a5-45ab-9418-388e92b2b52b":
