@@ -7,7 +7,7 @@ exclude:
    - benchmarks/
 ignore:
   "4ae4ee24-b2cd-427a-bcb2-6c720be06bff":
-    - "vllm/compilation/backends.py":
+    - "vllm/compilation/backends.py, line 425":
         reason: "hashlib.md5(foo, usedforsecurity=False) is used to index the vllm cache."
   "f4263be4-c6d2-48c9-b1e9-9920ddceae9b":
     - "vllm/compilation/backends.py":
@@ -118,5 +118,5 @@ ignore:
     - "vllm/utils.py":
         reason: "tooling only"
   "c27aa886-c24b-45df-853a-888713849906":
-    - "vllm/config.py":
+    - "vllm/config.py, line 4067":
         reason: "the provided key is a default required by tests. Not used in production"
