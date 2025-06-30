@@ -133,7 +133,7 @@ class InputProcessingContext(InputContext):
         # Transformers 4.53.0 has issue with passing tokenizer to
         # initialize processor. We disable it for this version.
         # See: https://github.com/vllm-project/vllm/issues/20224
-        if Version(TRANSFORMERS_VERSION) != Version("4.53.0"):
+        if Version(TRANSFORMERS_VERSION) < Version("4.53.0"):
             kwargs["tokenizer"] = self.tokenizer
         return super().get_hf_processor(
             typ,
