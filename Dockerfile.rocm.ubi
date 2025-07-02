@@ -71,27 +71,6 @@ WORKDIR /opt/rocm/share/amd_smi
 
 RUN python setup.py bdist_wheel --dist-dir=/dist/
 
-#################### libsodium Build IMAGE ####################
-FROM rocm_base as libsodium-builder
-
-RUN microdnf install -y --nodocs gcc gzip tar \
-    && microdnf clean all
-
-WORKDIR /usr/src/libsodium
-
-ARG LIBSODIUM_VERSION
-RUN curl -LO https://github.com/jedisct1/libsodium/releases/download/${LIBSODIUM_VERSION}-RELEASE/libsodium-${LIBSODIUM_VERSION}.tar.gz \
-    && tar -xzvf libsodium*.tar.gz \
-    && rm -f libsodium*.tar.gz \
-    && mv libsodium*/* ./
-
-RUN CFLAGS="-O3 -Wall -Werror=format-security -Wno-unused-function -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -fstack-clash-protection -fcf-protection" \
-    ./configure \
-        --prefix="/usr/" \
-        --libdir=/usr/lib64 && \
-    make -j $(nproc) && \
-    make check
-
 ##################################################################################################
 
 FROM rocm_base AS vllm-openai
@@ -106,10 +85,6 @@ ENV PATH=$VIRTUAL_ENV/bin:$PATH
 # Required for triton
 RUN microdnf install -y --setopt=install_weak_deps=0 --nodocs gcc rsync && \
     microdnf clean all
-
-# Install libsodium for Tensorizer encryption
-RUN --mount=type=bind,from=libsodium-builder,src=/usr/src/libsodium,target=/usr/src/libsodium \
-     make -C /usr/src/libsodium install
 
 RUN --mount=type=bind,from=build_amdsmi,src=/dist,target=/install/amdsmi/ \
     --mount=type=cache,target=/root/.cache/uv \
