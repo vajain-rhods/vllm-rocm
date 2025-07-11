@@ -28,6 +28,9 @@ class MacheteLinearKernel(MPLinearKernel):
     @classmethod
     def can_implement(cls,
                       c: MPLinearLayerConfig) -> tuple[bool, Optional[str]]:
+        # Machete uses CUTLASS, so it can only be compatible with Nvidia
+        if not current_platform.is_cuda():
+            return False, "Machete only supported on CUDA"
 
         if not current_platform.is_device_capability(90):
             return False, "Machete requires compute capability of 90 (Hopper)"
