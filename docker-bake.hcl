@@ -62,6 +62,8 @@ target "cuda" {
   args = {
     PYTHON_VERSION = "${PYTHON_VERSION}"
     VLLM_TGIS_ADAPTER_VERSION = "${VLLM_TGIS_ADAPTER_VERSION}"
+    CUDA_MAJOR =  "12"
+    CUDA_MINOR =  "8"
   }
 
   tags = [
