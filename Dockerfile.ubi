@@ -67,23 +67,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         -r requirements-cuda.txt
 
 
-#################### libsodium Build IMAGE ####################
-FROM base AS libsodium-builder
-
-RUN microdnf install -y gcc gzip \
-    && microdnf clean all
-
-WORKDIR /usr/src/libsodium
-
-ARG LIBSODIUM_VERSION
-RUN curl -LO https://github.com/jedisct1/libsodium/releases/download/${LIBSODIUM_VERSION}-RELEASE/libsodium-${LIBSODIUM_VERSION}.tar.gz \
-    && tar -xzvf libsodium*.tar.gz \
-    && rm -f libsodium*.tar.gz \
-    && mv libsodium*/* ./
-
-RUN CFLAGS="-O3 -Wall -Werror=format-security -Wno-unused-function -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -fstack-clash-protection -fcf-protection"\
-    ./configure --prefix="/usr/" && make -j $MAX_JOBS && make check
-
 ## Release #####################################################################
 FROM python-install AS vllm-openai
 ARG PYTHON_VERSION
@@ -102,10 +85,6 @@ ENV LD_LIBRARY_PATH="${VIRTUAL_ENV}/lib/python${PYTHON_VERSION}/site-packages/nv
 RUN microdnf install -y gcc && \
     microdnf clean all
 
-
-# Install libsodium for Tensorizer encryption
-RUN --mount=type=bind,from=libsodium-builder,src=/usr/src/libsodium,target=/usr/src/libsodium \
-    make -C /usr/src/libsodium install
 
 COPY LICENSE /licenses/vllm.md
 COPY examples/*.jinja /app/data/template/
