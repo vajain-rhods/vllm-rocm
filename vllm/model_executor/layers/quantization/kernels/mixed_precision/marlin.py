@@ -30,7 +30,7 @@ class MarlinLinearKernel(MPLinearKernel):
         # Marlin uses inline PTX, so it can only be compatible with Nvidia
         if not current_platform.is_cuda():
             return False, "Marlin only supported on CUDA"
-        
+
         quant_types = query_marlin_supported_quant_types(c.zero_points)
         if c.weight_type not in quant_types:
             return False, f"Quant type ({c.weight_type}) not supported by"\
