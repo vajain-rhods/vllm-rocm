@@ -117,7 +117,9 @@ RUN umask 002 && \
     chmod g+rwx /home/vllm
 
 COPY LICENSE /licenses/vllm.md
-COPY examples/*.jinja /opt/app-root/template/
+COPY examples/*.jinja /app/data/template/
+RUN mkdir -p /opt/app-root && \
+    ln -s /app/data/template /opt/app-root/template
 
 USER 2000
 WORKDIR /home/vllm
