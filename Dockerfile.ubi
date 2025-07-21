@@ -67,7 +67,8 @@ RUN microdnf install -y gcc && \
 
 COPY LICENSE /licenses/vllm.md
 COPY examples/*.jinja /app/data/template/
-
+RUN mkdir -p /opt/app-root && \
+    ln -s /app/data/template /opt/app-root/template
 # install vllm (and any other dependencies )by running the payload script
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,src=payload,target=/workspace/payload \
