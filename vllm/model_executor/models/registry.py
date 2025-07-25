@@ -22,8 +22,8 @@ from vllm.logger import init_logger
 
 from .interfaces import (has_inner_state, has_noops, is_attention_free,
                          is_hybrid, supports_cross_encoding,
-                         supports_multimodal, supports_pp,
-                         supports_transcription, supports_v0_only)
+                         supports_multimodal, supports_multimodal_raw_input,
+                         supports_pp, supports_transcription, supports_v0_only)
 from .interfaces_base import is_text_generation_model
 
 logger = init_logger(__name__)
@@ -33,6 +33,7 @@ _TEXT_GENERATION_MODELS = {
     # [Decoder-only]
     "AquilaModel": ("llama", "LlamaForCausalLM"),
     "AquilaForCausalLM": ("llama", "LlamaForCausalLM"),  # AquilaChat2
+    "ArceeForCausalLM": ("arcee", "ArceeForCausalLM"),
     "ArcticForCausalLM": ("arctic", "ArcticForCausalLM"),
     "MiniMaxForCausalLM": ("minimax_text_01", "MiniMaxText01ForCausalLM"),
     "MiniMaxText01ForCausalLM": ("minimax_text_01", "MiniMaxText01ForCausalLM"),
@@ -78,7 +79,8 @@ _TEXT_GENERATION_MODELS = {
     "GraniteMoeSharedForCausalLM": ("granitemoeshared", "GraniteMoeSharedForCausalLM"),   # noqa: E501
     "GritLM": ("gritlm", "GritLM"),
     "Grok1ModelForCausalLM": ("grok1", "Grok1ForCausalLM"),
-    "HunYuanMoEV1ForCausalLM": ("hunyuan_v1_moe", "HunYuanMoEV1ForCausalLM"),
+    "HunYuanMoEV1ForCausalLM": ("hunyuan_v1", "HunYuanMoEV1ForCausalLM"),
+    "HunYuanDenseV1ForCausalLM": ("hunyuan_v1", "HunYuanDenseV1ForCausalLM"),
     "InternLMForCausalLM": ("llama", "LlamaForCausalLM"),
     "InternLM2ForCausalLM": ("internlm2", "InternLM2ForCausalLM"),
     "InternLM2VEForCausalLM": ("internlm2_ve", "InternLM2VEForCausalLM"),
@@ -253,6 +255,7 @@ _SPECULATIVE_DECODING_MODELS = {
 }
 
 _TRANSFORMERS_MODELS = {
+    "TransformersForMultimodalLM": ("transformers", "TransformersForMultimodalLM"), # noqa: E501
     "TransformersForCausalLM": ("transformers", "TransformersForCausalLM"),
 }
 # yapf: enable
@@ -274,6 +277,8 @@ _SUBPROCESS_COMMAND = [
     sys.executable, "-m", "vllm.model_executor.models.registry"
 ]
 
+_PREVIOUSLY_SUPPORTED_MODELS = {"Phi3SmallForCausalLM": "0.9.2"}
+
 
 @dataclass(frozen=True)
 class _ModelInfo:
@@ -282,6 +287,7 @@ class _ModelInfo:
     is_pooling_model: bool
     supports_cross_encoding: bool
     supports_multimodal: bool
+    supports_multimodal_raw_input: bool
     supports_pp: bool
     has_inner_state: bool
     is_attention_free: bool
@@ -299,6 +305,7 @@ class _ModelInfo:
             is_pooling_model=True,  # Can convert any model into a pooling model
             supports_cross_encoding=supports_cross_encoding(model),
             supports_multimodal=supports_multimodal(model),
+            supports_multimodal_raw_input=supports_multimodal_raw_input(model),
             supports_pp=supports_pp(model),
             has_inner_state=has_inner_state(model),
             is_attention_free=is_attention_free(model),
@@ -504,9 +511,14 @@ class _ModelRegistry:
             if causal_lm_arch in self.models:
                 normalized_arch.append(arch)
 
-        # make sure Transformers backend is put at the last as a fallback
-        if len(normalized_arch) != len(architectures):
-            normalized_arch.append("TransformersForCausalLM")
+        # NOTE(Isotr0py): Be careful of architectures' order!
+        # Make sure Transformers backend architecture is at the end of the
+        # list, otherwise pooling models automatic conversion will fail!
+        for arch in normalized_arch:
+            if arch.startswith("TransformersFor"):
+                normalized_arch.remove(arch)
+                normalized_arch.append(arch)
+
         return normalized_arch
 
     def inspect_model_cls(
@@ -562,6 +574,13 @@ class _ModelRegistry:
     ) -> bool:
         model_cls, _ = self.inspect_model_cls(architectures)
         return model_cls.supports_multimodal
+
+    def supports_multimodal_raw_input(
+        self,
+        architectures: Union[str, list[str]],
+    ) -> bool:
+        model_cls, _ = self.inspect_model_cls(architectures)
+        return model_cls.supports_multimodal_raw_input
 
     def is_pp_supported_model(
         self,
