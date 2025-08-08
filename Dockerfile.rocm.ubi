@@ -118,7 +118,7 @@ FROM rocm_devel AS build_flashattention
 ARG FA_GFX_ARCHS="gfx90a;gfx942"
 
 # the FA_BRANCH commit belongs to the ROCm/flash-attention fork, `main_perf` branch
-ARG FA_BRANCH="3cea2fb"
+ARG FA_BRANCH="1a7f4dfa"
 ARG MAX_JOBS
 ENV MAX_JOBS=${MAX_JOBS}
 
@@ -162,27 +162,6 @@ RUN --mount=type=cache,target=/root/.cache/ccache \
         SETUPTOOLS_SCM_PRETEND_VERSION="$VLLM_VERSION" \
     python3 setup.py bdist_wheel --dist-dir=dist
 
-#################### libsodium Build IMAGE ####################
-FROM rocm_base as libsodium-builder
-
-RUN microdnf install -y --nodocs gcc gzip tar \
-    && microdnf clean all
-
-WORKDIR /usr/src/libsodium
-
-ARG LIBSODIUM_VERSION
-RUN curl -LO https://github.com/jedisct1/libsodium/releases/download/${LIBSODIUM_VERSION}-RELEASE/libsodium-${LIBSODIUM_VERSION}.tar.gz \
-    && tar -xzvf libsodium*.tar.gz \
-    && rm -f libsodium*.tar.gz \
-    && mv libsodium*/* ./
-
-RUN CFLAGS="-O3 -Wall -Werror=format-security -Wno-unused-function -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -fstack-clash-protection -fcf-protection" \
-    ./configure \
-        --prefix="/usr/" \
-        --libdir=/usr/lib64 && \
-    make -j $(nproc) && \
-    make check
-
 ##################################################################################################
 
 FROM rocm_base AS vllm-openai
@@ -198,11 +177,6 @@ ENV PATH=$VIRTUAL_ENV/bin:$PATH
 # Required for triton
 RUN microdnf install -y --setopt=install_weak_deps=0 --nodocs gcc rsync && \
     microdnf clean all
-
-# Install libsodium for Tensorizer encryption
-RUN --mount=type=bind,from=libsodium-builder,src=/usr/src/libsodium,target=/usr/src/libsodium \
-    cd /usr/src/libsodium \
-    && make install
 
 RUN --mount=type=bind,from=build_amdsmi,src=/install,target=/install/amdsmi/ \
     --mount=type=bind,from=build_flashattention,src=/install,target=/install/flashattention \
@@ -230,7 +204,6 @@ ENV HF_HUB_OFFLINE=1 \
     TOKENIZERS_PARALLELISM=false  \
     RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES=1 \
     VLLM_USE_TRITON_FLASH_ATTN=0 \
-    VLLM_USE_V1=1 \
     HIP_FORCE_DEV_KERNARG=1 \
     OUTLINES_CACHE_DIR=/tmp/outlines \
     NUMBA_CACHE_DIR=/tmp/numba \
