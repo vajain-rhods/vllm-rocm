@@ -524,6 +524,12 @@ def get_gaudi_sw_version():
 
 def get_vllm_version() -> str:
     version = get_version(write_to="vllm/_version.py")
+    
+    # If SETUPTOOLS_SCM_PRETEND_VERSION is set, don't add platform-specific suffixes
+    # This allows for exact version control during builds
+    if os.getenv("SETUPTOOLS_SCM_PRETEND_VERSION"):
+        return version
+    
     sep = "+" if "+" not in version else "."  # dev versions might contain +
 
     if _no_device():
