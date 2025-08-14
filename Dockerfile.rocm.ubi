@@ -169,6 +169,7 @@ FROM rocm_base AS vllm-openai
 ARG MAX_JOBS
 ARG FLASH_ATTENTION_WHEEL_STRATEGY
 ARG VLLM_WHEEL_STRATEGY
+ARG ROCM_VERSION
 
 WORKDIR /workspace
 
@@ -187,11 +188,14 @@ RUN --mount=type=bind,from=build_amdsmi,src=/install,target=/install/amdsmi/ \
     export version="$(awk -F. '{print $1"."$2}' <<< $ROCM_VERSION)" && \
     uv pip install \
         --index-strategy=unsafe-best-match \
-        --extra-index-url "https://download.pytorch.org/whl/nightly/rocm${version}" \
+        --extra-index-url "https://download.pytorch.org/whl/rocm${version}" \
         /install/amdsmi/*.whl\
         /install/flashattention/*.whl\
         "$(echo /install/vllm/*.whl)[audio,video,tensorizer]" \
-    && uv pip install blobfile
+        blobfile && \
+    uv pip install --force-reinstall \
+        --extra-index-url "https://download.pytorch.org/whl/rocm${version}" \
+        pytorch-triton-rocm==3.3.0 triton==3.3.0
 
 ENV HF_HUB_OFFLINE=1 \
     HOME=/home/vllm \
