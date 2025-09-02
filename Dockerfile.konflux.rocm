@@ -263,3 +263,11 @@ ENV GRPC_PORT=8033 \
 
 USER 2000
 ENTRYPOINT ["python3", "-m", "vllm_tgis_adapter", "--uvicorn-log-level=warning"]
+
+LABEL name="rhoai/odh-vllm-rocm-rhel9" \
+      com.redhat.component="odh-vllm-rocm-rhel9" \
+      io.k8s.display-name="odh-vllm-rocm-rhel9" \
+      io.k8s.description="vLLM build leveraging AMD ROCm for GPU-based inference on AMD hardware." \
+      description="vLLM build leveraging AMD ROCm for GPU-based inference on AMD hardware." \
+      summary="vLLM build leveraging AMD ROCm for GPU-based inference on AMD hardware." \
+      com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
