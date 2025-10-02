@@ -8,7 +8,6 @@ ARG VLLM_TGIS_ADAPTER_VERSION="0.9.0.post1"
 USER root
 
 ## Install git first ########################################################### 
-## failed to clone without git installed
 RUN microdnf install -y git
 
 ## Build vLLM-TGIS-Adapter from source #########################################
